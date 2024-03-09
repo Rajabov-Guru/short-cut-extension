@@ -1,0 +1,17 @@
+{
+  "name": "My Short Keys",
+  "version": "0.1.2",
+  "description": "Make short key for any button at any page",
+  "permissions": ["storage", "tabs", "scripting"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_icon": {
+      "16": "vite.svg",
+      "24": "vite.svg",
+      "32": "vite.svg"
+    },
+    "default_title": "My Short Key",
+    "default_popup": "index.html"
+  },
+  "manifest_version": 3
+}
