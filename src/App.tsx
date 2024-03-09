@@ -1,59 +1,64 @@
 import {useLayoutEffect, useState} from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
   const [count, setCount] = useState(0);
-  const [tab, setTab] = useState<chrome.tabs.Tab | null>(null);
+  const [tab, setTab] = useState<chrome.tabs.Tab>();
 
   useLayoutEffect( () => {
+      chrome.runtime.onMessage.addListener(
+          function(request, sender, sendResponse) {
+              console.log(sender.tab ?
+                  "from a content script:" + sender.tab.url :
+                  "from the extension");
+              if (request.type === "SUB"){
+                  console.log(request.data);
+                  sendResponse({success: true});
+              }
+          }
+      );
       chrome.tabs.query({active: true, currentWindow: true,}).then((tabs) => {
           const [currTab] = tabs;
           setTab(currTab);
-
-          if(currTab){
-              chrome.storage.sync.get([currTab.url], (data) => {
-                  if(currTab.url && data[currTab.url]) {
-                      setCount(Number(data[currTab?.url]))
-                  }
-              })
-          }
       });
   }, []);
 
   const onClick  = async () => {
-      setCount((count) => count + 1);
-      if(tab?.url) {
-          chrome.storage.sync.set({
-              [tab?.url]: `${count + 1}`
-          });
-      }
+      if(!tab) return;
+      chrome.scripting.executeScript<number[] , number>({
+          target: { tabId: tab.id! },
+          func: () => {
+              const buttons = document.getElementsByTagName('button');
+              return buttons.length;
+          }
+      }).then((response) => {
+          const [value] = response;
+          if(value.result) setCount(value.result);
+      });
+
+      chrome.scripting.executeScript({
+          target: { tabId: tab.id! },
+          func: async () => {
+              const subscribe = document.getElementById('subscribe-button-shape')?.firstChild as HTMLElement;
+
+              if(subscribe){
+                  const response = await chrome.runtime.sendMessage({
+                      type: 'SUB',
+                      data: subscribe.outerHTML,
+                  });
+                  console.log(response);
+              }
+          }
+      });
+
   };
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>{tab?.url} [Tab: {tab?.id}]</h1>
-      <div className="card">
-        <button onClick={onClick}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div>
+        <h1>Buttons: {count} </h1>
+
+        <button onClick={onClick}>Check</button>
+    </div>
   )
 }
 
