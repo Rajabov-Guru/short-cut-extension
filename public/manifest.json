@@ -1,9 +1,15 @@
 {
   "name": "My Short Keys",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Make short key for any button at any page",
   "permissions": ["storage", "tabs", "scripting"],
   "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"]
+    }
+  ],
   "action": {
     "default_icon": {
       "16": "vite.png",
