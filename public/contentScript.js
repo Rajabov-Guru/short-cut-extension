@@ -1,4 +1,4 @@
-const store = {
+var store = {
     addSessionStarted: false,
     buttons: [],
     clones: [],
@@ -14,15 +14,19 @@ const store = {
 
 };
 
-const consts = {
+var consts = {
     availableAnimName: 'pulsate',
 
     dialogId: 'short_key_dialog',
     closeDialogId: 'short_key_dialog_close',
     saveDialogId: 'short_key_dialog_save',
+    resetDialogId: 'short_key_dialog_reset',
     contentDialogId: 'short_key_dialog_content',
+    shortCutBtnClass: 'shortCutButton',
 
     maxShortCutLength: 3,
+
+    shortCutPlaceholder: ''
 };
 
 function addAvailableAnimation(){
@@ -46,7 +50,6 @@ function resetButtons(){
     store.clones = [];
     store.buttons = [];
     store.map.clear();
-    store.addSessionStarted = false;
 }
 
 function getDummyClone(btn){
@@ -84,6 +87,15 @@ function onNewShortKey(){
     });
 }
 
+function getShortCutView(keys){
+    return keys.map((key) => {
+        let value = key.code;
+        if(key.code.startsWith('Key')) value = key.code.substring(3);
+
+        return `<div class="${consts.shortCutBtnClass}">${value}</div>`;
+    }).join(' + ');
+}
+
 function onSelectButton(){
     const handler = (evt) => {
         evt.stopPropagation();
@@ -103,6 +115,10 @@ function onSelectButton(){
         if(evt.type === 'keyup') {
             store.keysEntered = true;
             console.log(store.targetKeys);
+            const content = document.getElementById(consts.contentDialogId);
+            content.innerHTML = getShortCutView(store.targetKeys);
+            const save = document.getElementById(consts.saveDialogId);
+            save.disabled = false;
         }
     };
 
@@ -122,33 +138,56 @@ function onCancel(){
     if(store.dialog) {
         store.dialog.close();
     }
+    store.addSessionStarted = false;
 }
 
-function onClose(){
+function onReset(){
+    store.targetKeys = [];
+    store.keysEntered = false;
+
+    const content = document.getElementById(consts.contentDialogId);
+    content.innerHTML = consts.shortCutPlaceholder;
+
+    const save = document.getElementById(consts.saveDialogId);
+    save.disabled = true;
+
+    store.dialog.removeAttribute('data-error');
+}
+
+function onClose() {
     store.dialog.close();
     ['keydown', 'keyup', 'keypress'].forEach((eventName) => {
         store.dialog.removeEventListener(eventName, store.dialogKeyListener);
     });
+
+    onReset();
+
     store.targetButton = null;
-    store.targetKeys = [];
-    store.keysEntered = false;
+    store.addSessionStarted = false;
 }
 
 function onSave(){
-    onClose();
+    store.dialog.setAttribute('data-error', 'GG');
+    // onClose();
 }
 
 function addDialog(){
+    consts.shortCutPlaceholder = getShortCutView([
+        {code: 'Your'},
+        {code: 'Shortcut'},
+    ]);
     const placeholder = document.createElement('div');
     const html = `
         <dialog id="${consts.dialogId}">
              <div class="container">
-                <h3 class="title">Enter short-key</h3>
-                <div id="${consts.contentDialogId}"></div>
+                <p class="title">Enter Shortcut</p>
+                <p class="error_title">Invalid Shortcut</p>
+                <div id="${consts.contentDialogId}">${consts.shortCutPlaceholder}</div>
                 <div class="dialog_controls">
                    <button id="${consts.closeDialogId}">Close</button>
+                   <button id="${consts.resetDialogId}">Reset</button>
                    <button id="${consts.saveDialogId}">Save</button>
-                </div> 
+                </div>
             </div>
         </dialog>
     `;
@@ -162,7 +201,11 @@ function addDialog(){
     close.addEventListener('click', onClose);
 
     const save = document.getElementById(consts.saveDialogId);
+    save.disabled = true;
     save.addEventListener('click', onSave);
+
+    const reset = document.getElementById(consts.resetDialogId);
+    reset.addEventListener('click', onReset);
 }
 
 const messageHandler = {

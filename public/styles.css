@@ -1,5 +1,5 @@
 #short_key_dialog {
-    width: 300px;
+    width: 350px;
     border: none;
     border-radius: 10px;
     padding: 10px;
@@ -7,21 +7,21 @@
     background-color: white;
 }
 
-#short_key_dialog .title {
+#short_key_dialog .title, #short_key_dialog .error_title {
     color: rgb(128, 128, 128);
     text-align: center;
     font-size: 20px;
+    margin: 0;
 }
 
 #short_key_dialog .container {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 30px;
 }
 
 #short_key_dialog_content {
     color: rgb(128, 128, 128);
-    margin-bottom: 10px;
 }
 
 #short_key_dialog .dialog_controls {
@@ -29,7 +29,7 @@
     justify-content: space-between;
 }
 
-#short_key_dialog_close, #short_key_dialog_save {
+#short_key_dialog_close, #short_key_dialog_save, #short_key_dialog_reset {
     border-radius: 6px;
     border-width: 0;
     box-shadow: rgba(50, 50, 93, .1) 0 0 0 1px inset,rgba(50, 50, 93, .1) 0 2px 5px 0,rgba(0, 0, 0, .07) 0 1px 1px 0;
@@ -59,4 +59,73 @@
 
 #short_key_dialog_save {
     background-color: #09b918;
+}
+
+#short_key_dialog_save:disabled {
+    background-color: rgb(128, 128, 128);
+    cursor: default;
+}
+
+#short_key_dialog_reset {
+    background-color: #f8620a;
+}
+
+.shortCutButton{
+    font-size: inherit;
+    line-height: inherit;
+    margin: 0.25rem 0.25rem 0.4375rem;
+    padding: 0.1rem 0.4rem;
+    box-shadow: 0 0 #d9d9d9, 0 0px #d9d9d9, 0 1px #d9d9d9, 0 2px #d9d9d9, 0 3px #d9d9d9, 0 4px #d9d9d9, 0 5px #d9d9d9, 2px 2.5px 4px #adb5bd, 0 -1px 2.5px #adb5bd;
+    background-color: #fff;
+    color: #343a40;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    border: 1px solid #e6e6e6;
+    border-radius: 0.25rem;
+    display: inline-block;
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-weight: 400;
+    text-align: left;
+    transform: translate3d(0, 0, 5px);
+    transform-style: preserve-3d;
+    transition: all 0.25s cubic-bezier(0.2, 1, 0.2, 1);
+}
+
+.shortCutButton::after{
+    border-style: solid;
+    box-sizing: content-box;
+    content: '';
+    display: block;
+    position: absolute;
+    transform-style: preserve-3d;
+    transition: all 0.25s cubic-bezier(0.2, 1, 0.2, 1);
+    border-color: #cccccc;
+    border-radius: 0.5rem;
+    border-width: 0.125rem;
+    bottom: -9px;
+    left: -0.3125rem;
+    right: -0.3125rem;
+    top: -3px;
+    transform: translate3d(0, 0, -3px);
+}
+
+.error_title{
+    color: red;
+    display: none;
+}
+
+#short_key_dialog[data-error] .title{
+    display: none;
+}
+
+#short_key_dialog[data-error] .error_title{
+    display: block;
+}
+
+#short_key_dialog[data-error] #short_key_dialog_content {
+    color: red;
+}
+
+#short_key_dialog[data-error] .shortCutButton::after{
+    border-color: red;
 }
