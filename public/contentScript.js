@@ -34,13 +34,10 @@ function resetButtons(){
 }
 
 function getDummyClone(btn){
-    const clone = document.createElement("button");
-    clone.innerHTML = btn.innerHTML;
-    clone.classList = btn.classList;
-    clone.style = btn.style;
+    btn.removeAttribute("onclick");
+    const clone = btn.cloneNode(true);
+    clone.removeAttribute("onclick");
     clone.style.animation = `${consts.availableAnimName} 0.5s ease-in-out infinite`;
-    clone.setAttribute('id', btn.getAttribute('id'));
-
     return clone;
 }
 
@@ -53,8 +50,10 @@ function onNewShortKey(){
     store.buttons = document.querySelectorAll('button');
 
     store.buttons.forEach((btn) => {
+        const style = window.getComputedStyle(btn);
+        if(style.display === 'none') return;
         const clone = getDummyClone(btn);
-        btn.parentNode.insertBefore(clone, btn.nextSibling);
+        btn.parentNode.insertBefore(clone, btn);
 
         store.clones.push(clone);
         store.map.set(clone, btn);
