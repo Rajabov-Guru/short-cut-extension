@@ -3,10 +3,16 @@ const store = {
     buttons: [],
     clones: [],
     map: new Map(),
+
+    dialog: null,
 };
 
 const consts = {
     availableAnimName: 'pulsate',
+    dialogId: 'short_key_dialog',
+    closeDialogId: 'short_key_dialog_close',
+    saveDialogId: 'short_key_dialog_save',
+    contentDialogId: 'short_key_dialog_content',
 };
 
 function addAvailableAnimation(){
@@ -64,9 +70,55 @@ function onNewShortKey(){
             const target = store.map.get(clone);
             console.log(target.outerHTML);
             resetButtons();
+            store.dialog.showModal();
         })
     });
 }
+
+function addDialog(){
+    const placeholder = document.createElement('div');
+    const html = `
+        <dialog id="${consts.dialogId}">
+             <div class="container">
+                <h3 class="title">Enter short-key</h3>
+                <div id="${consts.contentDialogId}"></div>
+                <div class="dialog_controls">
+                   <button id="${consts.closeDialogId}">Close</button>
+                   <button id="${consts.saveDialogId}">Save</button>
+                </div> 
+            </div>
+        </dialog>
+    `;
+    placeholder.innerHTML = html.trim();
+
+    const dialog = placeholder.firstChild;
+    store.dialog = dialog;
+    document.body.appendChild(dialog);
+
+    const close = document.getElementById(consts.closeDialogId);
+    const save = document.getElementById(consts.saveDialogId);
+    close.addEventListener('click', () => store.dialog.close());
+    save.addEventListener('click', () => {
+        console.log('SAVE');
+        store.dialog.close();
+    });
+
+    const dialogNode = document.getElementById(consts.dialogId);
+
+    ['keydown', 'keyup', 'keypress'].forEach((eventName) => {
+        dialogNode.addEventListener(eventName, (evt) => {
+            evt.stopPropagation();
+            evt.preventDefault();
+        });
+    });
+}
+
+// function onCancel(){
+//     resetButtons();
+//     if(store.dialog) {
+//         store.dialog.close();
+//     }
+// }
 
 const messageHandler = {
     NEW_SHORT_KEY: onNewShortKey,
@@ -81,6 +133,7 @@ chrome.runtime.onMessage.addListener((obj) => {
 });
 
 function start(){
+    addDialog();
     document.addEventListener('keydown', (evt) => {
         if (evt.key === "Escape") resetButtons();
     });

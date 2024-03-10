@@ -4,12 +4,18 @@ import {useEffect} from "react";
 function App() {
     const tab = useCurrentTab();
 
+    function cancel(){
+        if(tab && tab.id) {
+            chrome.tabs.sendMessage(tab.id, {
+                type: "CANCEL",
+            });
+        }
+    }
+
     useEffect(() => {
         document.addEventListener('keydown', (evt) => {
-            if (evt.key === "Escape" && tab && tab.id) {
-                chrome.tabs.sendMessage(tab.id, {
-                    type: "CANCEL",
-                });
+            if (evt.key === "Escape") {
+                cancel();
             }
         });
     }, [tab]);
@@ -27,7 +33,8 @@ function App() {
   return (
     <div>
         <h1>YOUR SHORT KEYS</h1>
-        <button onClick={onClick}>Check</button>
+        <button onClick={onClick}>New</button>
+        <button onClick={cancel}>Cancel</button>
     </div>
   )
 }
