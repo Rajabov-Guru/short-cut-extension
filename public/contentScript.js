@@ -4,15 +4,25 @@ const store = {
     clones: [],
     map: new Map(),
 
+    targetButton: null,
+
     dialog: null,
+    dialogKeyListener: null,
+
+    targetKeys: [],
+    keysEntered: false,
+
 };
 
 const consts = {
     availableAnimName: 'pulsate',
+
     dialogId: 'short_key_dialog',
     closeDialogId: 'short_key_dialog_close',
     saveDialogId: 'short_key_dialog_save',
     contentDialogId: 'short_key_dialog_content',
+
+    maxShortCutLength: 3,
 };
 
 function addAvailableAnimation(){
@@ -67,12 +77,65 @@ function onNewShortKey(){
         btn.style.display = 'none';
 
         clone.addEventListener('click', () => {
-            const target = store.map.get(clone);
-            console.log(target.outerHTML);
+            store.targetButton = store.map.get(clone);
             resetButtons();
-            store.dialog.showModal();
+            onSelectButton();
         })
     });
+}
+
+function onSelectButton(){
+    const handler = (evt) => {
+        evt.stopPropagation();
+        evt.preventDefault();
+        if(store.keysEntered) return;
+
+        if(evt.type === 'keydown') {
+            if(store.targetKeys.length >= consts.maxShortCutLength) return;
+
+            const keyItem  = {
+                code: evt.code,
+                keyCode: evt.keyCode,
+            };
+            store.targetKeys.push(keyItem);
+        }
+
+        if(evt.type === 'keyup') {
+            store.keysEntered = true;
+            console.log(store.targetKeys);
+        }
+    };
+
+    store.dialogKeyListener = handler;
+
+    [
+     'keydown',
+     'keyup',
+     'keypress'
+    ].forEach((eventName) => store.dialog.addEventListener(eventName, handler));
+
+    store.dialog.showModal();
+}
+
+function onCancel(){
+    resetButtons();
+    if(store.dialog) {
+        store.dialog.close();
+    }
+}
+
+function onClose(){
+    store.dialog.close();
+    ['keydown', 'keyup', 'keypress'].forEach((eventName) => {
+        store.dialog.removeEventListener(eventName, store.dialogKeyListener);
+    });
+    store.targetButton = null;
+    store.targetKeys = [];
+    store.keysEntered = false;
+}
+
+function onSave(){
+    onClose();
 }
 
 function addDialog(){
@@ -96,33 +159,15 @@ function addDialog(){
     document.body.appendChild(dialog);
 
     const close = document.getElementById(consts.closeDialogId);
+    close.addEventListener('click', onClose);
+
     const save = document.getElementById(consts.saveDialogId);
-    close.addEventListener('click', () => store.dialog.close());
-    save.addEventListener('click', () => {
-        console.log('SAVE');
-        store.dialog.close();
-    });
-
-    const dialogNode = document.getElementById(consts.dialogId);
-
-    ['keydown', 'keyup', 'keypress'].forEach((eventName) => {
-        dialogNode.addEventListener(eventName, (evt) => {
-            evt.stopPropagation();
-            evt.preventDefault();
-        });
-    });
+    save.addEventListener('click', onSave);
 }
-
-// function onCancel(){
-//     resetButtons();
-//     if(store.dialog) {
-//         store.dialog.close();
-//     }
-// }
 
 const messageHandler = {
     NEW_SHORT_KEY: onNewShortKey,
-    CANCEL: resetButtons,
+    CANCEL: onCancel,
 };
 
 chrome.runtime.onMessage.addListener((obj) => {
@@ -135,7 +180,7 @@ chrome.runtime.onMessage.addListener((obj) => {
 function start(){
     addDialog();
     document.addEventListener('keydown', (evt) => {
-        if (evt.key === "Escape") resetButtons();
+        if (evt.key === "Escape") onCancel();
     });
 }
 
