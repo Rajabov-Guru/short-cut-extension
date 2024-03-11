@@ -12,6 +12,9 @@ var store = {
     targetKeys: [],
     keysEntered: false,
 
+    pageKey: '',
+    savedShortCuts: [],
+
 };
 
 var consts = {
@@ -28,6 +31,14 @@ var consts = {
 
     shortCutPlaceholder: ''
 };
+
+function fetchShortCuts(){
+    return new Promise((resolve) => {
+        chrome.storage.sync.get([store.pageKey], (obj) => {
+            resolve(obj[store.pageKey] ? JSON.parse(obj[store.pageKey]) : []);
+        });
+    });
+}
 
 function addAvailableAnimation(){
     const keyframes = `@keyframes ${consts.availableAnimName} {
@@ -83,7 +94,8 @@ function onNewShortKey(){
         btn.style.display = 'none';
 
         clone.addEventListener('click', () => {
-            store.targetButton = store.map.get(clone);
+            store.targetButton = btn;
+            console.log(store.targetButton);
             resetButtons();
             onSelectButton();
         })
@@ -191,7 +203,14 @@ function onDialogClose() {
     store.addSessionStarted = false;
 }
 
-function onDialogSave(){
+async function onDialogSave(){
+    const shortCutKey = store.targetButton.outerHTML;
+    const shortCutValue = store.targetKeys;
+
+    const shortCutItem = { shortCutKey, shortCutValue };
+    await chrome.storage.sync.set({
+        [store.pageKey]: JSON.stringify([...store.savedShortCuts, shortCutItem])
+    });
     onDialogClose();
 }
 
@@ -245,11 +264,15 @@ chrome.runtime.onMessage.addListener((obj) => {
     if(handler) handler();
 });
 
-function start(){
+async function start(){
     addDialog();
+    store.pageKey = window.location.href;
+    store.savedShortCuts = await fetchShortCuts();
     document.addEventListener('keydown', (evt) => {
         if (evt.key === "Escape") onCancel();
     });
 }
 
-start();
+start().then(() => {
+    console.log('Ready!');
+});
