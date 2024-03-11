@@ -100,6 +100,7 @@ function getShortCutView(keys){
 }
 
 function validateShortCut(shortcut){
+    // TODO: "Shift + A" case
     if(shortcut.length < 2 || shortcut.length > 3) return false;
 
     const first = shortcut[0];
