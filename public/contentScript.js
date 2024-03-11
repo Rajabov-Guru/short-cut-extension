@@ -203,11 +203,11 @@ function addDialog(){
     const placeholder = document.createElement('div');
     const html = `
         <dialog id="${consts.dialogId}">
-             <div class="container">
-                <p class="title">Enter Shortcut</p>
-                <p class="error_title">Invalid Shortcut</p>
+             <div class="shortCutDialogContainer">
+                <p class="shortCutDialogTitle">Enter Shortcut</p>
+                <p class="shortCutDialogError_title">Invalid Shortcut</p>
                 <div id="${consts.contentDialogId}">${consts.shortCutPlaceholder}</div>
-                <div class="dialog_controls">
+                <div class="shortCutDialogControls">
                    <button id="${consts.closeDialogId}">Close</button>
                    <button id="${consts.resetDialogId}">Reset</button>
                    <button id="${consts.saveDialogId}">Save</button>
