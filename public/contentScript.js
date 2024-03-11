@@ -1,8 +1,11 @@
 var store = {
     addSessionStarted: false,
     buttons: [],
+    keyToButtonMap: new Map(),
+    buttonToKeyMap: new Map(),
     clones: [],
     map: new Map(),
+    escapeListener: null,
 
     targetButton: null,
 
@@ -14,6 +17,10 @@ var store = {
 
     pageKey: '',
     savedShortCuts: [],
+
+    shortcutMap: {},
+
+    triggeredKeys: [],
 
 };
 
@@ -54,6 +61,20 @@ function addAvailableAnimation(){
     document.head.appendChild(style);
 }
 
+function updateButtons(){
+    store.buttons = document.querySelectorAll('button');
+
+    store.buttons.forEach((btn) => {
+        const key = btn.outerHTML;
+        if(!store.keyToButtonMap.has(key)) {
+            store.keyToButtonMap.set(key, btn);
+        }
+        if(!store.buttonToKeyMap.has(btn)) {
+            store.buttonToKeyMap.set(btn, key);
+        }
+    });
+}
+
 function resetButtons(){
     store.clones.forEach((clone) => {
         const btn = store.map.get(clone);
@@ -74,13 +95,24 @@ function getDummyClone(btn){
     return clone;
 }
 
+function addEscapeListener(){
+    const handler = (evt) => {
+        if (evt.key === "Escape") onCancel();
+    }
+    document.addEventListener('keydown', handler);
+
+    store.escapeListener = handler;
+}
+
 function onNewShortKey(){
     if(store.addSessionStarted) return;
+
+    addEscapeListener();
 
     store.addSessionStarted = true;
     addAvailableAnimation();
 
-    store.buttons = document.querySelectorAll('button');
+    updateButtons();
     store.buttons.forEach((btn) => {
         const style = window.getComputedStyle(btn);
         if(style.display === 'none') return;
@@ -98,7 +130,8 @@ function onNewShortKey(){
             console.log(store.targetButton);
             resetButtons();
             onSelectButton();
-        })
+        });
+
     });
 }
 
@@ -142,6 +175,21 @@ function validateShortCut(shortcut){
     }
 
     return validAfterShift;
+}
+
+async function updateShortCuts(){
+    store.savedShortCuts = await fetchShortCuts();
+
+    store.shortcutMap = {};
+
+    for(let i = 0; i < store.savedShortCuts.length;i++){
+        const { shortCutKey, shortCutValue } = store.savedShortCuts[i];
+
+        const name = getShortCutName(shortCutValue);
+        store.shortcutMap[name] = shortCutKey;
+    }
+
+    console.log(store.shortcutMap);
 }
 
 function onEnterShortCut(){
@@ -196,6 +244,7 @@ function onCancel(){
         store.dialog.close();
     }
     store.addSessionStarted = false;
+    document.removeEventListener('keydown', store.escapeListener);
 }
 
 function onDialogReset(){
@@ -224,7 +273,7 @@ function onDialogClose() {
 }
 
 async function onDialogSave(){
-    const shortCutKey = store.targetButton.outerHTML;
+    const shortCutKey = store.buttonToKeyMap.get(store.targetButton);
     const shortCutValue = store.targetKeys;
     onDialogClose();
 
@@ -232,6 +281,8 @@ async function onDialogSave(){
     await chrome.storage.sync.set({
         [store.pageKey]: JSON.stringify([...store.savedShortCuts, shortCutItem])
     });
+
+    await updateShortCuts();
 }
 
 function addDialog(){
@@ -272,6 +323,10 @@ function addDialog(){
     reset.addEventListener('click', onDialogReset);
 }
 
+function getShortCutName(shortCut){
+    return shortCut.map((k) => k.code).join('+');
+}
+
 const messageHandler = {
     NEW_SHORT_KEY: onNewShortKey,
     CANCEL: onCancel,
@@ -287,37 +342,64 @@ chrome.runtime.onMessage.addListener((obj) => {
 async function start(){
     addDialog();
     store.pageKey = window.location.href;
-    store.savedShortCuts = await fetchShortCuts();
+    await updateShortCuts();
 
-    // const handler = (evt) => {
-    //     evt.stopPropagation();
-    //     evt.preventDefault();
-    //     if(store.keysEntered) return;
-    //
-    //     if(evt.type === 'keydown') {
-    //         if(store.targetKeys.length >= consts.maxShortCutLength) return;
-    //
-    //         const keyItem  = {
-    //             code: evt.code,
-    //             keyCode: evt.keyCode,
-    //         };
-    //
-    //         store.targetKeys.push(keyItem);
-    //     }
-    //
-    //     if(evt.type === 'keyup') onEnterShortCut();
-    // };
-    //
-    // ['keydown', 'keyup', 'keypress'].forEach((eventName) => {
-    //     store.dialog.addEventListener(eventName, handler);
-    // });
+    const handler = (evt) => {
+        evt.stopPropagation();
+        evt.preventDefault();
 
-    document.addEventListener('keydown', (evt) => {
-        console.log(evt);
-        if (evt.key === "Escape") onCancel();
+        if(evt.type === 'keydown') {
+            if(store.triggeredKeys.length >= consts.maxShortCutLength) return;
+
+            const keyItem  = {
+                code: evt.code,
+                keyCode: evt.keyCode,
+            };
+
+            store.triggeredKeys.push(keyItem);
+        }
+
+        if(evt.type === 'keyup') {
+            if(store.triggeredKeys.length === 0) return;
+            const shortCut = store.triggeredKeys;
+            store.triggeredKeys = [];
+
+            const isValid = validateShortCut(shortCut);
+
+            if(!isValid) return;
+
+            const name = getShortCutName(shortCut);
+
+            console.log({NAME:name});
+
+            const buttonKey = store.shortcutMap[name];
+            if(buttonKey){
+                const button = store.keyToButtonMap.get(buttonKey);
+                button.click();
+            }
+        }
+    };
+
+    ['keydown', 'keyup', 'keypress'].forEach((eventName) => {
+        document.addEventListener(eventName, handler);
     });
 }
 
-start().then(() => {
-    console.log('Ready!');
-});
+
+
+
+
+
+
+if (document.readyState !== 'loading') {
+    start().then(() => {
+        console.log('Ready!');
+    });
+} else {
+    document.addEventListener('DOMContentLoaded', function () {
+        start().then(() => {
+            console.log('Ready!');
+        });
+    });
+}
+
