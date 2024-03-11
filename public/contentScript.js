@@ -32,7 +32,9 @@ var consts = {
 function addAvailableAnimation(){
     const keyframes = `@keyframes ${consts.availableAnimName} {
         0% { transform: scale(1); }
-        50% { transform: scale(0.7); }
+        25% { transform: scale(0.9); }
+        50% { transform: scale(0.8); }
+        75% { transform: scale(0.9); }
         100% { transform: scale(1); }
     }`;
 
@@ -53,6 +55,7 @@ function resetButtons(){
 }
 
 function getDummyClone(btn){
+    // TODO: improve
     btn.removeAttribute("onclick");
     const clone = btn.cloneNode(true);
     clone.removeAttribute("onclick");
@@ -62,15 +65,15 @@ function getDummyClone(btn){
 
 function onNewShortKey(){
     if(store.addSessionStarted) return;
-    store.addSessionStarted = true;
 
+    store.addSessionStarted = true;
     addAvailableAnimation();
 
     store.buttons = document.querySelectorAll('button');
-
     store.buttons.forEach((btn) => {
         const style = window.getComputedStyle(btn);
         if(style.display === 'none') return;
+
         const clone = getDummyClone(btn);
         btn.parentNode.insertBefore(clone, btn);
 
@@ -96,6 +99,33 @@ function getShortCutView(keys){
     }).join(' + ');
 }
 
+function validateShortCut(shortcut){
+    if(shortcut.length < 2 || shortcut.length > 3) return false;
+
+    const first = shortcut[0];
+
+    return !(first.keyCode !== 16
+        && first.keyCode !== 17
+        && first.keyCode !== 18);
+}
+
+function onEnterShortCut(){
+    store.keysEntered = true;
+    console.log(store.targetKeys);
+    const content = document.getElementById(consts.contentDialogId);
+    content.innerHTML = getShortCutView(store.targetKeys);
+
+    const isValid = validateShortCut(store.targetKeys);
+
+    if(!isValid) {
+        store.dialog.setAttribute('data-error', 'GG');
+        return;
+    }
+
+    const save = document.getElementById(consts.saveDialogId);
+    save.disabled = false;
+}
+
 function onSelectButton(){
     const handler = (evt) => {
         evt.stopPropagation();
@@ -109,17 +139,11 @@ function onSelectButton(){
                 code: evt.code,
                 keyCode: evt.keyCode,
             };
+
             store.targetKeys.push(keyItem);
         }
 
-        if(evt.type === 'keyup') {
-            store.keysEntered = true;
-            console.log(store.targetKeys);
-            const content = document.getElementById(consts.contentDialogId);
-            content.innerHTML = getShortCutView(store.targetKeys);
-            const save = document.getElementById(consts.saveDialogId);
-            save.disabled = false;
-        }
+        if(evt.type === 'keyup') onEnterShortCut();
     };
 
     store.dialogKeyListener = handler;
@@ -141,7 +165,7 @@ function onCancel(){
     store.addSessionStarted = false;
 }
 
-function onReset(){
+function onDialogReset(){
     store.targetKeys = [];
     store.keysEntered = false;
 
@@ -154,21 +178,20 @@ function onReset(){
     store.dialog.removeAttribute('data-error');
 }
 
-function onClose() {
+function onDialogClose() {
     store.dialog.close();
     ['keydown', 'keyup', 'keypress'].forEach((eventName) => {
         store.dialog.removeEventListener(eventName, store.dialogKeyListener);
     });
 
-    onReset();
+    onDialogReset();
 
     store.targetButton = null;
     store.addSessionStarted = false;
 }
 
-function onSave(){
-    store.dialog.setAttribute('data-error', 'GG');
-    // onClose();
+function onDialogSave(){
+    onDialogClose();
 }
 
 function addDialog(){
@@ -176,6 +199,7 @@ function addDialog(){
         {code: 'Your'},
         {code: 'Shortcut'},
     ]);
+
     const placeholder = document.createElement('div');
     const html = `
         <dialog id="${consts.dialogId}">
@@ -198,14 +222,14 @@ function addDialog(){
     document.body.appendChild(dialog);
 
     const close = document.getElementById(consts.closeDialogId);
-    close.addEventListener('click', onClose);
+    close.addEventListener('click', onDialogClose);
 
     const save = document.getElementById(consts.saveDialogId);
     save.disabled = true;
-    save.addEventListener('click', onSave);
+    save.addEventListener('click', onDialogSave);
 
     const reset = document.getElementById(consts.resetDialogId);
-    reset.addEventListener('click', onReset);
+    reset.addEventListener('click', onDialogReset);
 }
 
 const messageHandler = {

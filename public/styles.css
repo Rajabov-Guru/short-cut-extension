@@ -22,6 +22,10 @@
 
 #short_key_dialog_content {
     color: rgb(128, 128, 128);
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    align-items: center;
 }
 
 #short_key_dialog .dialog_controls {
@@ -109,7 +113,7 @@
     transform: translate3d(0, 0, -3px);
 }
 
-.error_title{
+#short_key_dialog .error_title{
     color: red;
     display: none;
 }
