@@ -112,14 +112,36 @@ function getShortCutView(keys){
 }
 
 function validateShortCut(shortcut){
-    // TODO: "Shift + A" case
     if(shortcut.length < 2 || shortcut.length > 3) return false;
 
-    const first = shortcut[0];
+    const keyCodes = shortcut.map((sh) => sh.keyCode);
 
-    return !(first.keyCode !== 16
-        && first.keyCode !== 17
-        && first.keyCode !== 18);
+    const first = keyCodes[0];
+
+    const [shift, ctrl, alt] = [16, 17, 18];
+
+    const invalidFirst = (
+        first !== shift
+        && first !== ctrl
+        && first !== alt
+    );
+
+    if(invalidFirst) return false;
+
+    let validAfterShift = true;
+
+    for(let i = 0; i < keyCodes.length; i++){
+        if(keyCodes[i] === shift && i !== keyCodes.length - 1) {
+            const after = keyCodes[i + 1];
+            const functional = after >= 112 && after <= 123;
+            const tab = after === 9;
+            const ctrlAlt = after === 17 || after === 18;
+
+            validAfterShift = functional || tab || ctrlAlt;
+        }
+    }
+
+    return validAfterShift;
 }
 
 function onEnterShortCut(){
@@ -161,11 +183,9 @@ function onSelectButton(){
 
     store.dialogKeyListener = handler;
 
-    [
-     'keydown',
-     'keyup',
-     'keypress'
-    ].forEach((eventName) => store.dialog.addEventListener(eventName, handler));
+    ['keydown', 'keyup', 'keypress'].forEach((eventName) => {
+        store.dialog.addEventListener(eventName, handler);
+    });
 
     store.dialog.showModal();
 }
@@ -206,12 +226,12 @@ function onDialogClose() {
 async function onDialogSave(){
     const shortCutKey = store.targetButton.outerHTML;
     const shortCutValue = store.targetKeys;
+    onDialogClose();
 
     const shortCutItem = { shortCutKey, shortCutValue };
     await chrome.storage.sync.set({
         [store.pageKey]: JSON.stringify([...store.savedShortCuts, shortCutItem])
     });
-    onDialogClose();
 }
 
 function addDialog(){
@@ -268,7 +288,32 @@ async function start(){
     addDialog();
     store.pageKey = window.location.href;
     store.savedShortCuts = await fetchShortCuts();
+
+    // const handler = (evt) => {
+    //     evt.stopPropagation();
+    //     evt.preventDefault();
+    //     if(store.keysEntered) return;
+    //
+    //     if(evt.type === 'keydown') {
+    //         if(store.targetKeys.length >= consts.maxShortCutLength) return;
+    //
+    //         const keyItem  = {
+    //             code: evt.code,
+    //             keyCode: evt.keyCode,
+    //         };
+    //
+    //         store.targetKeys.push(keyItem);
+    //     }
+    //
+    //     if(evt.type === 'keyup') onEnterShortCut();
+    // };
+    //
+    // ['keydown', 'keyup', 'keypress'].forEach((eventName) => {
+    //     store.dialog.addEventListener(eventName, handler);
+    // });
+
     document.addEventListener('keydown', (evt) => {
+        console.log(evt);
         if (evt.key === "Escape") onCancel();
     });
 }
