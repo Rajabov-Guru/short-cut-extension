@@ -64,3 +64,36 @@ function validateShortCut(shortcut){
     return validAfterShift;
 }
 
+function getButtonToken(button){
+    const tagName = button.tagName;
+    let token = `<${tagName}`;
+
+    let tokenObj = {
+        id: button.id,
+        ariaLabel: button.ariaLabel,
+        name: button.name,
+        src: button.src,
+        href: JSON.stringify(button.href),
+        'xlink:href': button.getAttribute('xlink:href'),
+    };
+
+    if(button.onclick){
+        tokenObj.onclick = button.onclick?.toString()
+            .trim()
+            .replaceAll('\n', '')
+            .replaceAll(' ', '');
+    }
+
+    Object.keys(tokenObj).forEach((key) => {
+        if(tokenObj[key]) token +=  `${key}=${tokenObj[key]}`;
+    });
+
+    token += `>${button.textContent.trim()}`;
+
+    for (const ch of button.children) {
+        token += getButtonToken(ch);
+    }
+
+    return token + `</${tagName}>`;
+}
+

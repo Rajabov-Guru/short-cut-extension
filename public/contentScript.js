@@ -47,10 +47,15 @@ function addAvailableAnimation(){
 }
 
 function updateButtons(){
-    store.buttons = document.querySelectorAll('button');
+    store.buttons = [];
+    const allButtons = document.querySelectorAll('button');
 
-    store.buttons.forEach((btn) => {
-        const key = btn.outerHTML;
+    allButtons.forEach((btn) => {
+        const key = getButtonToken(btn);
+
+        const shortcut = store.savedShortCuts.find((sh) => sh.shortCutKey === key);
+        if(!shortcut) store.buttons.push(btn);
+
         if(!store.keyToButtonMap.has(key)) {
             store.keyToButtonMap.set(key, btn);
         }
@@ -275,7 +280,7 @@ chrome.runtime.onMessage.addListener((obj) => {
 
 async function start(){
     addDialog();
-    store.pageKey = window.location.href;
+    store.pageKey = window.location.host;
     await updateShortCuts();
 
     const handler = (evt) => {
@@ -322,8 +327,8 @@ async function start(){
 
 
 function onReady(){
-    updateButtons();
     start().then(() => {
+        updateButtons();
         console.log('Ready!');
     });
 }
